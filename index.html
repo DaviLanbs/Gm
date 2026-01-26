@@ -3,146 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nano IA Offline</title>
+    <title>Nano IA (Modo Seguro)</title>
     <style>
-        :root { --primary: #007bff; --bg: #f0f2f5; --text: #333; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
+        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        #status { font-weight: bold; color: #333; margin: 10px 0; display: block; }
+        #error-log { color: red; font-size: 12px; background: #ffe6e6; padding: 10px; border-radius: 5px; display: none; text-align: left; margin-top: 10px; word-break: break-all;}
         
-        /* Cabeçalho Otimizado */
-        #header { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; z-index: 10; }
-        .top-row { display: flex; justify-content: space-between; align-items: center; }
-        h1 { font-size: 18px; margin: 0; color: var(--primary); }
-        
-        /* Barra de Progresso */
-        .progress-box { margin-top: 10px; display: none; }
-        .bar-bg { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-        #bar-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
-        #status { font-size: 12px; color: #666; margin-top: 4px; display: block; }
+        .progress-bar { width: 100%; background: #ddd; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; display: none; }
+        #fill { width: 0%; height: 100%; background: #007bff; transition: width 0.3s; }
 
-        /* Chat */
-        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 80%; font-size: 15px; line-height: 1.4; }
-        .user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 2px; }
-        .ai { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-bottom-left-radius: 2px; }
-
-        /* Input Fixo embaixo */
-        #controls { background: #fff; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #ddd; }
-        input { flex: 1; border: 1px solid #ccc; padding: 12px; border-radius: 25px; outline: none; font-size: 16px; }
-        button { border: none; border-radius: 20px; padding: 10px 15px; font-weight: bold; cursor: pointer; }
-        #send { background: var(--primary); color: #fff; }
-        #send:disabled { background: #ccc; }
-        #clear { background: #ff4757; color: #fff; font-size: 10px; }
+        input { width: 80%; padding: 10px; border-radius: 20px; border: 1px solid #ccc; margin-top: 15px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:disabled { background: #ccc; }
+        .chat-box { text-align: left; margin-top: 20px; max-height: 300px; overflow-y: auto; }
+        .msg { background: #eef; padding: 10px; border-radius: 10px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <div class="top-row">
-        <h1>Nano IA 🤖</h1>
-        <button id="clear">Limpar Cache</button>
-    </div>
-    <div class="progress-box" id="p-box">
-        <div class="bar-bg"><div id="bar-fill"></div></div>
-        <span id="status">Iniciando...</span>
-    </div>
-</div>
+<div class="box">
+    <h2>Nano IA 🤖</h2>
+    <span id="status">Clique em INICIAR para baixar</span>
+    
+    <div id="error-log"></div>
 
-<div id="chat">
-    <div class="msg ai">Olá! Eu sou uma IA que roda localmente. Na primeira vez, vou baixar meus "conhecimentos" (360MB). Depois disso, funcionarei sem internet!</div>
-</div>
+    <div class="progress-bar" id="p-bar"><div id="fill"></div></div>
 
-<div id="controls">
-    <input type="text" id="input" placeholder="Digite em inglês..." autocomplete="off">
-    <button id="send" disabled>Enviar</button>
+    <button id="start-btn">INICIAR DOWNLOAD (360MB)</button>
+    
+    <div id="interface" style="display:none;">
+        <div class="chat-box" id="chat"></div>
+        <input type="text" id="input" placeholder="Digite algo em inglês...">
+        <button id="send-btn">Enviar</button>
+    </div>
 </div>
 
 <script type="module">
-    // Importando a biblioteca principal
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-    // Configurações para Celular (Força uso de memória local e desabilita WebGPU se falhar)
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
-
-    const chat = document.getElementById('chat');
-    const input = document.getElementById('input');
-    const btn = document.getElementById('send');
-    const pBox = document.getElementById('p-box');
-    const fill = document.getElementById('bar-fill');
+    // --- CONFIGURAÇÃO DE SEGURANÇA ---
+    // Desativa a busca por WebGPU (que costuma dar erro em celular)
+    env.backends.onnx.wasm.numThreads = 1; 
+    env.allowLocalModels = false; 
+    
     const status = document.getElementById('status');
-    const clearBtn = document.getElementById('clear');
-
+    const errorLog = document.getElementById('error-log');
+    const pBar = document.getElementById('p-bar');
+    const fill = document.getElementById('fill');
+    const startBtn = document.getElementById('start-btn');
+    const interfaceDiv = document.getElementById('interface');
+    const chat = document.getElementById('chat');
+    
     let generator;
 
-    // Função para carregar o modelo
-    async function loadModel() {
-        pBox.style.display = 'block';
+    startBtn.onclick = async () => {
+        startBtn.style.display = 'none';
+        pBar.style.display = 'block';
+        status.innerText = "Preparando motor...";
+        errorLog.style.display = 'none';
+
         try {
+            // Tenta carregar o modelo
             generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
                 progress_callback: (data) => {
+                    if (data.status === 'initiate') {
+                        status.innerText = "Conectando ao servidor...";
+                    }
                     if (data.status === 'progress') {
-                        fill.style.width = `${data.progress}%`;
-                        status.innerText = `Baixando IA: ${Math.round(data.progress)}%`;
+                        fill.style.width = data.progress + "%";
+                        status.innerText = `Baixando: ${Math.round(data.progress)}%`;
                     }
                     if (data.status === 'ready') {
-                        pBox.style.display = 'none';
-                        status.innerText = "IA Pronta Offline";
-                        btn.disabled = false;
+                        status.innerText = "IA Pronta!";
+                        pBar.style.display = 'none';
+                        interfaceDiv.style.display = 'block';
                     }
                 }
             });
         } catch (err) {
-            status.innerText = "Erro ao carregar. Tente atualizar a página.";
-            console.error(err);
+            // AQUI ESTÁ O SEGREDO: MOSTRAR O ERRO REAL
+            pBar.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            status.innerText = "Erro fatal. Veja detalhes abaixo:";
+            errorLog.style.display = 'block';
+            errorLog.innerText = "DETALHE DO ERRO:\n" + err.message + "\n\n" + (err.stack || "");
+            alert("Ocorreu um erro. Tire um print e mande para a IA analisar.");
         }
-    }
+    };
 
-    // Função de enviar mensagem
-    async function handleSend() {
-        const text = input.value.trim();
-        if (!text) return;
-
-        addMsg(text, 'user');
-        input.value = '';
-        btn.disabled = true;
-
+    document.getElementById('send-btn').onclick = async () => {
+        const text = document.getElementById('input').value;
+        if(!text) return;
+        
+        chat.innerHTML += `<div class="msg" style="background:#dcf8c6">Você: ${text}</div>`;
+        document.getElementById('input').value = "";
+        
         try {
-            const output = await generator(text, { 
-                max_new_tokens: 50,
-                temperature: 0.7,
-                repetition_penalty: 1.2 
-            });
-            const response = output[0].generated_text.replace(text, '').trim();
-            addMsg(response || "Não entendi, pode repetir?", 'ai');
+            const out = await generator(text, { max_new_tokens: 50, temperature: 0.6 });
+            const reply = out[0].generated_text.replace(text, '');
+            chat.innerHTML += `<div class="msg">IA: ${reply}</div>`;
         } catch (e) {
-            addMsg("Erro ao processar. Tente frases curtas.", 'ai');
-        }
-        btn.disabled = false;
-    }
-
-    function addMsg(txt, side) {
-        const d = document.createElement('div');
-        d.className = `msg ${side}`;
-        d.innerText = txt;
-        chat.appendChild(d);
-        chat.scrollTop = chat.scrollHeight;
-    }
-
-    // Botão Limpar Cache
-    clearBtn.onclick = async () => {
-        if(confirm("Apagar os 360MB da IA do seu celular?")) {
-            const dbs = await indexedDB.databases();
-            dbs.forEach(db => indexedDB.deleteDatabase(db.name));
-            alert("Memória limpa!");
-            location.reload();
+            chat.innerHTML += `<div class="msg" style="color:red">Erro ao responder: ${e.message}</div>`;
         }
     }
-
-    btn.onclick = handleSend;
-    input.onkeypress = (e) => e.key === 'Enter' && handleSend();
-
-    loadModel();
 </script>
 
 </body>
-</html>
+    </html>
