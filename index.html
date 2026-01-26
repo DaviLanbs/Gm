@@ -2,143 +2,146 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano IA Local</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nano IA Offline</title>
     <style>
-        :root { --bg: #f4f4f9; --chat: #ffffff; --primary: #2563eb; --danger: #ef4444; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; color: #333; }
+        :root { --primary: #007bff; --bg: #f0f2f5; --text: #333; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* Cabeçalho */
-        #header { padding: 15px; background: white; border-bottom: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
-        .status-text { font-size: 12px; color: #666; margin-top: 8px; }
-
+        /* Cabeçalho Otimizado */
+        #header { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; z-index: 10; }
+        .top-row { display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 18px; margin: 0; color: var(--primary); }
+        
         /* Barra de Progresso */
-        .progress-container { width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 10px; display: none; }
-        #progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s ease; }
+        .progress-box { margin-top: 10px; display: none; }
+        .bar-bg { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+        #bar-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
+        #status { font-size: 12px; color: #666; margin-top: 4px; display: block; }
 
-        /* Área de Chat */
-        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
-        .user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
-        .ai { align-self: flex-start; background: var(--chat); border: 1px solid #e2e8f0; border-bottom-left-radius: 2px; }
+        /* Chat */
+        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 80%; font-size: 15px; line-height: 1.4; }
+        .user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 2px; }
+        .ai { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-bottom-left-radius: 2px; }
 
-        /* Controles */
-        #input-area { padding: 15px; background: white; display: flex; gap: 8px; border-top: 1px solid #ddd; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
-        input { flex: 1; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 25px; outline: none; font-size: 16px; }
-        
-        button { border: none; padding: 10px 18px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-        #send-btn { background: var(--primary); color: white; }
-        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        #clear-cache { background: var(--danger); color: white; font-size: 11px; }
+        /* Input Fixo embaixo */
+        #controls { background: #fff; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #ddd; }
+        input { flex: 1; border: 1px solid #ccc; padding: 12px; border-radius: 25px; outline: none; font-size: 16px; }
+        button { border: none; border-radius: 20px; padding: 10px 15px; font-weight: bold; cursor: pointer; }
+        #send { background: var(--primary); color: #fff; }
+        #send:disabled { background: #ccc; }
+        #clear { background: #ff4757; color: #fff; font-size: 10px; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <div class="header-top">
-        <strong>Nano IA Offline 🤖</strong>
-        <button id="clear-cache">Apagar IA do Celular</button>
+    <div class="top-row">
+        <h1>Nano IA 🤖</h1>
+        <button id="clear">Limpar Cache</button>
     </div>
-    <div id="status" class="status-text">Iniciando motor da IA...</div>
-    <div class="progress-container" id="p-bar"><div id="progress-fill"></div></div>
+    <div class="progress-box" id="p-box">
+        <div class="bar-bg"><div id="bar-fill"></div></div>
+        <span id="status">Iniciando...</span>
+    </div>
 </div>
 
-<div id="chat-box" id="chat-box">
-    <div class="msg ai">Olá! Sou uma IA que roda totalmente no seu navegador. Após o download (aprox. 360MB), funcionarei mesmo sem internet.</div>
+<div id="chat">
+    <div class="msg ai">Olá! Eu sou uma IA que roda localmente. Na primeira vez, vou baixar meus "conhecimentos" (360MB). Depois disso, funcionarei sem internet!</div>
 </div>
 
-<div id="input-area">
-    <input type="text" id="user-input" placeholder="Pergunte algo (em inglês)..." autocomplete="off">
-    <button id="send-btn" disabled>Enviar</button>
+<div id="controls">
+    <input type="text" id="input" placeholder="Digite em inglês..." autocomplete="off">
+    <button id="send" disabled>Enviar</button>
 </div>
 
 <script type="module">
-    // Usando Transformers.js via CDN para evitar instalações complexas
-    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+    // Importando a biblioteca principal
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-    let chatbot;
+    // Configurações para Celular (Força uso de memória local e desabilita WebGPU se falhar)
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const btn = document.getElementById('send');
+    const pBox = document.getElementById('p-box');
+    const fill = document.getElementById('bar-fill');
     const status = document.getElementById('status');
-    const pBar = document.getElementById('p-bar');
-    const pFill = document.getElementById('progress-fill');
-    const btn = document.getElementById('send-btn');
-    const chatBox = document.getElementById('chat-box');
-    const input = document.getElementById('user-input');
+    const clearBtn = document.getElementById('clear');
 
-    // Inicialização do Modelo Ultra-Leve (SmolLM-135M)
-    async function initIA() {
-        pBar.style.display = 'block';
+    let generator;
+
+    // Função para carregar o modelo
+    async function loadModel() {
+        pBox.style.display = 'block';
         try {
-            // Este modelo é um dos menores e mais eficientes para dispositivos móveis
-            chatbot = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
+            generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
                 progress_callback: (data) => {
                     if (data.status === 'progress') {
-                        pFill.style.width = `${data.progress}%`;
-                        status.innerText = `Baixando arquivos: ${Math.round(data.progress)}%`;
+                        fill.style.width = `${data.progress}%`;
+                        status.innerText = `Baixando IA: ${Math.round(data.progress)}%`;
                     }
                     if (data.status === 'ready') {
-                        status.innerText = "Pronta para uso Offline ✅";
-                        pBar.style.display = 'none';
+                        pBox.style.display = 'none';
+                        status.innerText = "IA Pronta Offline";
                         btn.disabled = false;
                     }
                 }
             });
-        } catch (e) {
-            status.innerText = "Erro: Seu navegador não suporta IA local.";
-            console.error(e);
+        } catch (err) {
+            status.innerText = "Erro ao carregar. Tente atualizar a página.";
+            console.error(err);
         }
     }
 
-    // Função para Enviar Mensagem
-    async function sendMessage() {
+    // Função de enviar mensagem
+    async function handleSend() {
         const text = input.value.trim();
-        if(!text || btn.disabled) return;
+        if (!text) return;
 
-        addMessage(text, 'user');
+        addMsg(text, 'user');
         input.value = '';
         btn.disabled = true;
-        status.innerText = "IA pensando...";
 
         try {
-            const output = await chatbot(text, { 
-                max_new_tokens: 60,
-                temperature: 0.6,
-                repetition_penalty: 1.2
+            const output = await generator(text, { 
+                max_new_tokens: 50,
+                temperature: 0.7,
+                repetition_penalty: 1.2 
             });
-
-            const aiResponse = output[0].generated_text.replace(text, '').trim();
-            addMessage(aiResponse || "Não consegui gerar uma resposta.", 'ai');
-        } catch (err) {
-            addMessage("Erro ao processar. Tente frases curtas.", 'ai');
+            const response = output[0].generated_text.replace(text, '').trim();
+            addMsg(response || "Não entendi, pode repetir?", 'ai');
+        } catch (e) {
+            addMsg("Erro ao processar. Tente frases curtas.", 'ai');
         }
-
-        status.innerText = "Pronta para uso Offline ✅";
         btn.disabled = false;
     }
 
-    function addMessage(msg, type) {
-        const div = document.createElement('div');
-        div.className = `msg ${type}`;
-        div.innerText = msg;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+    function addMsg(txt, side) {
+        const d = document.createElement('div');
+        d.className = `msg ${side}`;
+        d.innerText = txt;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
     }
 
-    // Função para Limpar o Cache do Navegador
-    document.getElementById('clear-cache').onclick = async () => {
-        if (confirm("Iso vai deletar o modelo de IA e liberar espaço no celular. Continuar?")) {
+    // Botão Limpar Cache
+    clearBtn.onclick = async () => {
+        if(confirm("Apagar os 360MB da IA do seu celular?")) {
             const dbs = await indexedDB.databases();
             dbs.forEach(db => indexedDB.deleteDatabase(db.name));
-            alert("Espaço liberado!");
+            alert("Memória limpa!");
             location.reload();
         }
-    };
+    }
 
-    // Eventos
-    btn.onclick = sendMessage;
-    input.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+    btn.onclick = handleSend;
+    input.onkeypress = (e) => e.key === 'Enter' && handleSend();
 
-    initIA();
+    loadModel();
 </script>
 
 </body>
