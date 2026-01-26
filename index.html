@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano IA Local</title>
+    <style>
+        :root { --bg: #f4f4f9; --chat: #ffffff; --primary: #2563eb; --danger: #ef4444; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; color: #333; }
+        
+        /* Cabeçalho */
+        #header { padding: 15px; background: white; border-bottom: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .status-text { font-size: 12px; color: #666; margin-top: 8px; }
+
+        /* Barra de Progresso */
+        .progress-container { width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 10px; display: none; }
+        #progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s ease; }
+
+        /* Área de Chat */
+        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+        .user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
+        .ai { align-self: flex-start; background: var(--chat); border: 1px solid #e2e8f0; border-bottom-left-radius: 2px; }
+
+        /* Controles */
+        #input-area { padding: 15px; background: white; display: flex; gap: 8px; border-top: 1px solid #ddd; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+        input { flex: 1; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 25px; outline: none; font-size: 16px; }
+        
+        button { border: none; padding: 10px 18px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        #send-btn { background: var(--primary); color: white; }
+        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #clear-cache { background: var(--danger); color: white; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div class="header-top">
+        <strong>Nano IA Offline 🤖</strong>
+        <button id="clear-cache">Apagar IA do Celular</button>
+    </div>
+    <div id="status" class="status-text">Iniciando motor da IA...</div>
+    <div class="progress-container" id="p-bar"><div id="progress-fill"></div></div>
+</div>
+
+<div id="chat-box" id="chat-box">
+    <div class="msg ai">Olá! Sou uma IA que roda totalmente no seu navegador. Após o download (aprox. 360MB), funcionarei mesmo sem internet.</div>
+</div>
+
+<div id="input-area">
+    <input type="text" id="user-input" placeholder="Pergunte algo (em inglês)..." autocomplete="off">
+    <button id="send-btn" disabled>Enviar</button>
+</div>
+
+<script type="module">
+    // Usando Transformers.js via CDN para evitar instalações complexas
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+
+    let chatbot;
+    const status = document.getElementById('status');
+    const pBar = document.getElementById('p-bar');
+    const pFill = document.getElementById('progress-fill');
+    const btn = document.getElementById('send-btn');
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('user-input');
+
+    // Inicialização do Modelo Ultra-Leve (SmolLM-135M)
+    async function initIA() {
+        pBar.style.display = 'block';
+        try {
+            // Este modelo é um dos menores e mais eficientes para dispositivos móveis
+            chatbot = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
+                progress_callback: (data) => {
+                    if (data.status === 'progress') {
+                        pFill.style.width = `${data.progress}%`;
+                        status.innerText = `Baixando arquivos: ${Math.round(data.progress)}%`;
+                    }
+                    if (data.status === 'ready') {
+                        status.innerText = "Pronta para uso Offline ✅";
+                        pBar.style.display = 'none';
+                        btn.disabled = false;
+                    }
+                }
+            });
+        } catch (e) {
+            status.innerText = "Erro: Seu navegador não suporta IA local.";
+            console.error(e);
+        }
+    }
+
+    // Função para Enviar Mensagem
+    async function sendMessage() {
+        const text = input.value.trim();
+        if(!text || btn.disabled) return;
+
+        addMessage(text, 'user');
+        input.value = '';
+        btn.disabled = true;
+        status.innerText = "IA pensando...";
+
+        try {
+            const output = await chatbot(text, { 
+                max_new_tokens: 60,
+                temperature: 0.6,
+                repetition_penalty: 1.2
+            });
+
+            const aiResponse = output[0].generated_text.replace(text, '').trim();
+            addMessage(aiResponse || "Não consegui gerar uma resposta.", 'ai');
+        } catch (err) {
+            addMessage("Erro ao processar. Tente frases curtas.", 'ai');
+        }
+
+        status.innerText = "Pronta para uso Offline ✅";
+        btn.disabled = false;
+    }
+
+    function addMessage(msg, type) {
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        div.innerText = msg;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Função para Limpar o Cache do Navegador
+    document.getElementById('clear-cache').onclick = async () => {
+        if (confirm("Iso vai deletar o modelo de IA e liberar espaço no celular. Continuar?")) {
+            const dbs = await indexedDB.databases();
+            dbs.forEach(db => indexedDB.deleteDatabase(db.name));
+            alert("Espaço liberado!");
+            location.reload();
+        }
+    };
+
+    // Eventos
+    btn.onclick = sendMessage;
+    input.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+    initIA();
+</script>
+
+</body>
+</html>
