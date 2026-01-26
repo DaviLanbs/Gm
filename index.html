@@ -3,38 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nano IA (Modo Seguro)</title>
+    <title>Nano IA (Livre)</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
-        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        #status { font-weight: bold; color: #333; margin: 10px 0; display: block; }
-        #error-log { color: red; font-size: 12px; background: #ffe6e6; padding: 10px; border-radius: 5px; display: none; text-align: left; margin-top: 10px; word-break: break-all;}
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
+        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-bottom: 5px; }
         
-        .progress-bar { width: 100%; background: #ddd; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; display: none; }
-        #fill { width: 0%; height: 100%; background: #007bff; transition: width 0.3s; }
+        #status { font-weight: bold; color: #555; margin: 10px 0; display: block; font-size: 14px;}
+        #error-log { color: #721c24; background: #f8d7da; padding: 10px; border-radius: 5px; display: none; text-align: left; margin-top: 10px; font-size: 11px; word-break: break-all;}
+        
+        .progress-container { width: 100%; background: #e9ecef; height: 12px; border-radius: 6px; margin-top: 15px; overflow: hidden; display: none; }
+        #fill { width: 0%; height: 100%; background: #28a745; transition: width 0.3s; }
 
-        input { width: 80%; padding: 10px; border-radius: 20px; border: 1px solid #ccc; margin-top: 15px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 25px; border: 1px solid #ccc; margin-top: 15px; outline: none; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
         button:disabled { background: #ccc; }
-        .chat-box { text-align: left; margin-top: 20px; max-height: 300px; overflow-y: auto; }
-        .msg { background: #eef; padding: 10px; border-radius: 10px; margin-bottom: 5px; }
+        
+        #chat { text-align: left; margin-top: 20px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;}
+        .msg { padding: 8px 12px; border-radius: 12px; font-size: 14px; max-width: 85%; }
+        .user { align-self: flex-end; background: #007bff; color: white; }
+        .ai { align-self: flex-start; background: #e9ecef; color: black; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>Nano IA 🤖</h2>
-    <span id="status">Clique em INICIAR para baixar</span>
+    <h2>Nano IA 🔓</h2>
+    <span id="status">Pronto para iniciar</span>
     
     <div id="error-log"></div>
 
-    <div class="progress-bar" id="p-bar"><div id="fill"></div></div>
+    <div class="progress-container" id="p-bar"><div id="fill"></div></div>
 
-    <button id="start-btn">INICIAR DOWNLOAD (360MB)</button>
+    <button id="start-btn">BAIXAR IA (250MB)</button>
     
     <div id="interface" style="display:none;">
-        <div class="chat-box" id="chat"></div>
-        <input type="text" id="input" placeholder="Digite algo em inglês...">
+        <div id="chat">
+            <div class="msg ai">Olá! Sou o LaMini. Estou rodando no seu celular. Diga algo em inglês!</div>
+        </div>
+        <input type="text" id="input" placeholder="Ex: Hello, how are you?">
         <button id="send-btn">Enviar</button>
     </div>
 </div>
@@ -42,11 +49,13 @@
 <script type="module">
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-    // --- CONFIGURAÇÃO DE SEGURANÇA ---
-    // Desativa a busca por WebGPU (que costuma dar erro em celular)
-    env.backends.onnx.wasm.numThreads = 1; 
+    // CONFIGURAÇÕES DE COMPATIBILIDADE MÓVEL
     env.allowLocalModels = false; 
+    env.useBrowserCache = true;
     
+    // Força uso da CPU (WASM) para evitar erro de placa de vídeo em Android
+    env.backends.onnx.wasm.numThreads = 1; 
+
     const status = document.getElementById('status');
     const errorLog = document.getElementById('error-log');
     const pBar = document.getElementById('p-bar');
@@ -58,56 +67,63 @@
     let generator;
 
     startBtn.onclick = async () => {
-        startBtn.style.display = 'none';
+        startBtn.disabled = true;
+        startBtn.innerText = "Conectando...";
         pBar.style.display = 'block';
-        status.innerText = "Preparando motor...";
         errorLog.style.display = 'none';
 
         try {
-            // Tenta carregar o modelo
-            generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
+            // TROCAMOS PARA O MODELO 'LaMini-GPT-124M' QUE É 100% PÚBLICO
+            generator = await pipeline('text-generation', 'Xenova/LaMini-GPT-124M', {
                 progress_callback: (data) => {
                     if (data.status === 'initiate') {
-                        status.innerText = "Conectando ao servidor...";
+                        status.innerText = "Iniciando download...";
                     }
                     if (data.status === 'progress') {
                         fill.style.width = data.progress + "%";
-                        status.innerText = `Baixando: ${Math.round(data.progress)}%`;
+                        status.innerText = `Baixando arquivos: ${Math.round(data.progress)}%`;
                     }
                     if (data.status === 'ready') {
-                        status.innerText = "IA Pronta!";
+                        status.innerText = "✅ Instalação concluída!";
                         pBar.style.display = 'none';
+                        startBtn.style.display = 'none';
                         interfaceDiv.style.display = 'block';
                     }
                 }
             });
         } catch (err) {
-            // AQUI ESTÁ O SEGREDO: MOSTRAR O ERRO REAL
             pBar.style.display = 'none';
-            startBtn.style.display = 'inline-block';
-            status.innerText = "Erro fatal. Veja detalhes abaixo:";
+            startBtn.disabled = false;
+            startBtn.innerText = "Tentar Novamente";
+            
+            status.innerText = "Erro no Download ❌";
             errorLog.style.display = 'block';
-            errorLog.innerText = "DETALHE DO ERRO:\n" + err.message + "\n\n" + (err.stack || "");
-            alert("Ocorreu um erro. Tire um print e mande para a IA analisar.");
+            errorLog.innerText = "ERRO: " + err.message;
         }
     };
 
     document.getElementById('send-btn').onclick = async () => {
-        const text = document.getElementById('input').value;
+        const inputEl = document.getElementById('input');
+        const text = inputEl.value;
         if(!text) return;
         
-        chat.innerHTML += `<div class="msg" style="background:#dcf8c6">Você: ${text}</div>`;
-        document.getElementById('input').value = "";
+        chat.innerHTML += `<div class="msg user">${text}</div>`;
+        inputEl.value = "";
         
         try {
-            const out = await generator(text, { max_new_tokens: 50, temperature: 0.6 });
+            const out = await generator(text, { 
+                max_new_tokens: 40, 
+                temperature: 0.6,
+                do_sample: true 
+            });
             const reply = out[0].generated_text.replace(text, '');
-            chat.innerHTML += `<div class="msg">IA: ${reply}</div>`;
+            chat.innerHTML += `<div class="msg ai">${reply}</div>`;
+            chat.scrollTop = chat.scrollHeight;
         } catch (e) {
-            chat.innerHTML += `<div class="msg" style="color:red">Erro ao responder: ${e.message}</div>`;
+            chat.innerHTML += `<div class="msg ai" style="color:red">Erro: ${e.message}</div>`;
         }
     }
 </script>
 
 </body>
-    </html>
+            </html>
